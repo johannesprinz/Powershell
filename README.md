@@ -13,3 +13,4 @@ To use:
 2. Enter the name of the new module
 3. Launch Modules\MyNewModule\here.cmd `Invoke-psake Build`
 4. Checkout the new nuget package in Modules\MyNewModule\bin which is also where the test results are logged.
+5. Thats it now edit and add to the functions in the Modules\MyNewModule\Functions directory and remeber to write tests.
