@@ -48,7 +48,8 @@ Task Unversion-Module{
 
 Task Pack-Nuget {
 	if(!(Test-Path -Path $OutDir)){ New-Item -Path $OutDir -ItemType Directory }
-    exec { . $NugetExe pack "$BaseDir\$ModuleName.nuspec" -OutputDirectory "$OutDir" -NoPackageAnalysis -version $Version }
+	$build=(git rev-list --count HEAD)
+    exec { . $NugetExe pack "$BaseDir\$ModuleName.nuspec" -OutputDirectory "$OutDir" -NoPackageAnalysis -version ([string]::Format("{0}.{1}", $Version, $build)) }
 }
 
 Task Push-Nuget {
