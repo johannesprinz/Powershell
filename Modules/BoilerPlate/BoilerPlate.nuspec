@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>BoilerPlate</id>
+    <version>$version$</version>
+    <title>BoilerPlate</title>
+    <summary>Powershell module project boilerplate</summary>
+    <description>Powershell module project structure builder, for fast creation of powershell modules with testing and automated packaging and publishing to nuget for use with psget.</description>
+    <tags>powershell module boilerplate nuget</tags>
+    <authors>Johannes Prinz</authors>
+    <iconUrl>http://www.gravatar.com/avatar/a5eaccbfc33daeeb8001e0f39ca92849.png</iconUrl>
+    <projectUrl>https://github.com/johannesprinz/Powershell</projectUrl>
+    <licenseUrl>https://github.com/johannesprinz/Powershell/blob/master/LICENSE.md</licenseUrl>
+  </metadata>
+  <files>
+    <file src="BoilerPlate.psm1" target="tools" />
+    <file src="Functions\**\*.*" target="tools\Functions" />
+  </files>
+</package>
