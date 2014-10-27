@@ -3,8 +3,8 @@ properties {
 	$ModuleName = "BoilerPlate"
     $BaseDir = $psake.build_script_dir
     $OutDir = (Join-Path -Path $BaseDir -ChildPath "bin")
-    $Version = '0.1.0' #Semantic Versioning 2.0.0 Major.Minor.Patch
-    $NugetExe = (Join-Path -Path $BaseDir -ChildPath "..\.nuget\nuget.exe")
+    $Version = '0.1.0' #Semantic Versioning 2.0.0 Major.Minor.Patch.Build
+    $NugetExe = (Join-Path -Path $BaseDir -ChildPath "..\..\.nuget\nuget.exe")
 }
 
 Task Build -depends Test, Package
@@ -21,6 +21,7 @@ Task Test {
 	? { $null -eq (Get-Verb -verb ($_.BaseName.Split('-')[0]) -ErrorAction SilentlyContinue)} | 
 	% { Write-Warning "Use of unknown verb detected for $($_.FullName)"}
 	
+	if(!(Test-Path -Path $OutDir)){ New-Item -Path $OutDir -ItemType Directory }
 	if(!(Test-Path -Path $OutDir)){ mkdir $OutDir }
     pushd "$BaseDir"
 	exec { . "$BaseDir\Pester.cmd" }
@@ -28,23 +29,25 @@ Task Test {
 }
 
 Task Version-Module{
-    $changeset=(hg log -r . --template '{node|short}')
-    (Get-Content "$BaseDir\$ModuleName.psm1") `
-      | % {$_ -replace "\`$version\`$", "$Version" } `
+    $changeset=(git log -1 --pretty=tformat:%h)
+	$build=(git rev-list --count HEAD)
+	(Get-Content "$BaseDir\$ModuleName.psm1") `
+      | % {$_ -replace "\`$version\`$", [string]::Format("{0}.{1}", $Version, $build) } `
       | % {$_ -replace "\`$sha\`$", "$changeset" } `
       | Set-Content "$BaseDir\$ModuleName.psm1"
 }
 
 Task Unversion-Module{
-    $changeset=(hg log -r . --template '{node|short}')
+    $changeset=(git log -1 --pretty=tformat:%h)
+	$build=(git rev-list --count HEAD)
     (Get-Content "$BaseDir\$ModuleName.psm1") `
-      | % {$_ -replace "$Version", "`$version`$" } `
+      | % {$_ -replace [string]::Format("{0}.{1}", $Version, $build), "`$version`$" } `
       | % {$_ -replace "$changeset", "`$sha`$" } `
       | Set-Content "$BaseDir\$ModuleName.psm1"
 }
 
 Task Pack-Nuget {
-	if(!(Test-Path -Path $OutDir)){ mkdir $OutDir }
+	if(!(Test-Path -Path $OutDir)){ New-Item -Path $OutDir -ItemType Directory }
     exec { . $NugetExe pack "$BaseDir\$ModuleName.nuspec" -OutputDirectory "$OutDir" -NoPackageAnalysis -version $Version }
 }
 
