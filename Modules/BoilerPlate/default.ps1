@@ -15,25 +15,29 @@ Task Clean {
 	if(Test-Path -Path $OutDir){ Remove-Item -Path $OutDir -Recurse }
 }
 
-Task Test {
+Task Test -depends PowerShellLint {
 	Get-ChildItem -Path (Join-Path -Path $BaseDir -ChildPath "Functions") -Recurse | 
-	? { -not ((Split-Path -Path $_ -Leaf).Contains(".Tests.")) } | 
-	? { $null -eq (Get-Verb -verb ($_.BaseName.Split('-')[0]) -ErrorAction SilentlyContinue)} | 
-	% { Write-Warning "Use of unknown verb detected for $($_.FullName)"}
+	Where-Object { -not ((Split-Path -Path $_ -Leaf).Contains(".Tests.")) } | 
+	Where-Object { $null -eq (Get-Verb -verb ($_.BaseName.Split('-')[0]) -ErrorAction SilentlyContinue)} | 
+	ForEach-Object { Write-Warning "Use of unknown verb detected for $($_.FullName)"}
 	
 	if(!(Test-Path -Path $OutDir)){ New-Item -Path $OutDir -ItemType Directory }
 	if(!(Test-Path -Path $OutDir)){ mkdir $OutDir }
-    pushd "$BaseDir"
+    Push-Location -Path "$BaseDir"
 	exec { . "$BaseDir\Pester.cmd" }
-    popd
+    Pop-Location
+}
+
+Task PowerShellLint -alias lint {
+	Invoke-ScriptAnalyzer -Path $BaseDir -Recurse
 }
 
 Task Version-Module{
     $changeset=(git log -1 --pretty=tformat:%h)
 	$build=(git rev-list --count HEAD)
 	(Get-Content "$BaseDir\$ModuleName.psm1") `
-      | % {$_ -replace "\`$version\`$", [string]::Format("{0}.{1}", $Version, $build) } `
-      | % {$_ -replace "\`$sha\`$", "$changeset" } `
+      | ForEach-Object {$_ -replace "\`$version\`$", [string]::Format("{0}.{1}", $Version, $build) } `
+      | ForEach-Object {$_ -replace "\`$sha\`$", "$changeset" } `
       | Set-Content "$BaseDir\$ModuleName.psm1"
 }
 
@@ -41,8 +45,8 @@ Task Unversion-Module{
     $changeset=(git log -1 --pretty=tformat:%h)
 	$build=(git rev-list --count HEAD)
     (Get-Content "$BaseDir\$ModuleName.psm1") `
-      | % {$_ -replace [string]::Format("{0}.{1}", $Version, $build), "`$version`$" } `
-      | % {$_ -replace "$changeset", "`$sha`$" } `
+      | ForEach-Object {$_ -replace [string]::Format("{0}.{1}", $Version, $build), "`$version`$" } `
+      | ForEach-Object {$_ -replace "$changeset", "`$sha`$" } `
       | Set-Content "$BaseDir\$ModuleName.psm1"
 }
 

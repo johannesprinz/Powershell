@@ -1,6 +1,6 @@
 if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) { Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs; exit }
 
-function Get-ProxyCredentials {
+function Get-ProxyCredential {
     <#
     .SYNOPSIS
 		Gets and applies proxy credentials if required.
@@ -19,14 +19,14 @@ function Get-ProxyCredentials {
 	Begin{
 		$webclient = New-Object System.Net.WebClient;
 	} Process {
-		if(-not($webclient.Proxy.IsBypassed((Get-PSRepository | Select -First 1).SourceLocation))) {
+		if(-not($webclient.Proxy.IsBypassed((Get-PSRepository | Select-Object -First 1).SourceLocation))) {
 			$credential = Get-Credential -Message "Enter Proxy authentication credentials";
 			$webclient.Proxy.Credentials=$credential;
 		}
 	} End {	}
 }
 
-Get-ProxyCredentials
+Get-ProxyCredential
 
 $dependencies = "Psake", "Pester", "PSScriptAnalyzer";
 $dependencies | ForEach-Object {
