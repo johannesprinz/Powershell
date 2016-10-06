@@ -64,12 +64,17 @@ function Format-HelloWorld {
         [string[]]$Name
     )
     Begin{
-    	Write-Verbose -Message "Beginning Format-HelloWorld ...";
+		$formats = @{
+			"Begin" = "Begin {0}...";
+			"Process" = "...processing {0}...";
+			"End" = "...ending {0}";
+		};
+    	Write-Verbose -Message ($formats.Begin -f $MyInvocation.MyCommand);
     	$date = Get-Date;
     } Process {
-    	Write-Verbose -Message "Process";
+    	Write-Verbose -Message ($formats.Process -f $MyInvocation.MyCommand);
     	return "Welcome to Hello World $Name on $date";
     } End {	
-    	Write-Verbose -Message "... ending Format-HelloWorld";
+    	Write-Verbose -Message ($formats.End -f $MyInvocation.MyCommand);
     }
 }
