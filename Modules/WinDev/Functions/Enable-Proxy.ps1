@@ -30,7 +30,16 @@ function Enable-Proxy {
         [parameter(
 			Mandatory=$false,
 			HelpMessage="Web proxy uri with port number.")]
-		[System.Uri] $Uri
+		[System.Uri] $Uri,
+		[parameter(
+			Mandatory=$false,
+			HelpMessage="Bypass proxy server for local addresses.")]
+		[switch] $BypassForLocal,
+		[parameter(
+			Mandatory=$false,
+			HelpMessage="Do not use proxy server for addresses beginning with: Use semicolons (;) to separate entries.")]
+		[ValidateNotNullOrEmpty()]
+		[string] $ProxyOverride
     )
     Begin{
 		$formats = @{
@@ -43,9 +52,27 @@ function Enable-Proxy {
     } Process {
     	Write-Verbose -Message ($formats.Process -f $MyInvocation.MyCommand);
 		if($Uri){
-			Set-ItemProperty -Path $internetSettings -Name ProxyServer -Value $Uri.AbsoluteUri;
+			if(Get-ItemProperty -Path $internetSettings -Name ProxyServer -ErrorAction SilentlyContinue) {
+				Set-ItemProperty -Path $internetSettings -Name ProxyServer -Value $Uri.AbsoluteUri;
+			} else {
+				New-ItemProperty -Path $internetSettings -Name ProxyServer -Value $Uri.AbsoluteUri -PropertyType string;
+			}
 		}
-		Set-ItemProperty -Path $internetSettings -Name ProxyEnable -Value 1;
+		if($BypassForLocal){
+			$ProxyOverride += ";<local>";
+		}
+		if($ProxyOverride){
+			if(Get-ItemProperty -Path $internetSettings -Name ProxyOverride -ErrorAction SilentlyContinue) {
+				Set-ItemProperty -Path $internetSettings -Name ProxyOverride -Value $ProxyOverride;
+			} else {
+				New-ItemProperty -Path $internetSettings -Name ProxyOverride -Value $ProxyOverride.AbsoluteUri -PropertyType string;
+			}
+		}
+		if(Get-ItemProperty -Path $internetSettings -Name ProxyEnable -ErrorAction SilentlyContinue) {
+			Set-ItemProperty -Path $internetSettings -Name ProxyEnable -Value 1;
+		} else {
+			New-ItemProperty -Path $internetSettings -Name ProxyEnable -Value 1 -PropertyType DWORD;
+		}
     } End {	
     	Write-Verbose -Message ($formats.End -f $MyInvocation.MyCommand);
     }

@@ -52,10 +52,9 @@ function Set-SQLAlias {
 		};
 		Write-Verbose -Message ($formats.Begin -f $MyInvocation.MyCommand);
 		$computerSystem = Get-WmiObject win32_computersystem;
-		$fqdn = "{0}.{1}" -f $computerSystem.DNSHostName, $computerSystem.Domain;
+		$tcpAliasName = "DBMSSOCN,{0}.{1}" -f $computerSystem.DNSHostName, $computerSystem.Domain;
 		$connectTos = 	"HKLM:\SOFTWARE\Microsoft\MSSQLServer\Client\ConnectTo", 
 						"HKLM:\SOFTWARE\Wow6432Node\Microsoft\MSSQLServer\Client\ConnectTo";
-		$tcpAliasName = "DBMSSOCN,{0}.{1}" -f $computerSystem.DNSHostName, $computerSystem.Domain;
 		if($PortNumber) {
 			$tcpAliasName += ",$PortNumber";
 		}
@@ -63,12 +62,12 @@ function Set-SQLAlias {
     	Write-Verbose -Message ($formats.Process -f $MyInvocation.MyCommand);
 		$connectTos | Foreach-Object {
 			if(-not(Test-Path -Path $_)) {
-				$swallowOutput = New-Item -Path $_ -ItemType Container
+				New-Item -Path $_ -ItemType Container | Out-Null;
 			}
 			if(Get-ItemProperty -Path $_ -Name $AliasName -ErrorAction SilentlyContinue) {
 				Set-ItemProperty -Path $_ -Name $AliasName -Value $tcpAliasName;
 			} else {
-				$swallowOutput = New-ItemProperty -Path $_ -Name $AliasName -PropertyType string -Value $tcpAliasName;
+				New-ItemProperty -Path $_ -Name $AliasName -PropertyType string -Value $tcpAliasName | Out-Null;
 			}
 		}
     } End {	
@@ -78,8 +77,6 @@ function Set-SQLAlias {
 
 # TODO Output Name, Value collection so you could pipe into Remove-SQLAlias
 function Get-SQLAlias {
-	[OutputType([PSCustomObject])]
-    [CmdletBinding()]
     Begin{
 		$formats = @{
 			"Begin" = "Begin {0}...";
@@ -129,4 +126,74 @@ function Remove-SQLAlias {
     } End {	
     	Write-Verbose -Message ($formats.End -f $MyInvocation.MyCommand);
     }
+}
+
+function Test-SQLAlias {
+	[OutputType([Boolean])]
+    [CmdletBinding(
+		SupportsShouldProcess=$true,
+		PositionalBinding=$true,
+		ConfirmImpact="Medium"
+    )]
+    param (
+        [parameter(
+			Mandatory=$true,
+			HelpMessage="SQL alias name")]
+		[string] $AliasName
+    )
+    Begin{
+		$formats = @{
+			"Begin" = "Begin {0}...";
+			"Process" = "...processing {0}...";
+			"End" = "...ending {0}";
+		};
+		Write-Verbose -Message ($formats.Begin -f $MyInvocation.MyCommand);
+		$connectTos = 	"HKLM:\SOFTWARE\Microsoft\MSSQLServer\Client\ConnectTo", 
+						"HKLM:\SOFTWARE\Wow6432Node\Microsoft\MSSQLServer\Client\ConnectTo";		
+    } Process {
+    	Write-Verbose -Message ($formats.Process -f $MyInvocation.MyCommand);
+		$objSQLConnection = New-Object System.Data.SqlClient.SqlConnection
+		$objSQLCommand = New-Object System.Data.SqlClient.SqlCommand
+		try {
+			$objSQLConnection.ConnectionString = "Server=$AliasName;Integrated Security=SSPI;"
+			Write-Verbose "Testing access to SQL server/instance/alias: $AliasName"
+			Write-Verbose " - Trying to connect to $AliasName..."
+			$objSQLConnection.Open() | Out-Null
+			Write-Verbose  "...Success"
+			$strCmdSvrDetails = "SELECT SERVERPROPERTY('productversion') as Version"
+			$strCmdSvrDetails += ",SERVERPROPERTY('IsClustered') as Clustering"
+			$objSQLCommand.CommandText = $strCmdSvrDetails
+			$objSQLCommand.Connection = $objSQLConnection
+			$objSQLDataReader = $objSQLCommand.ExecuteReader()
+			if ($objSQLDataReader.Read()) {
+				Write-Verbose (" - SQL Server version is: {0}" -f $objSQLDataReader.GetValue(0))
+				if ($objSQLDataReader.GetValue(1) -eq 1) {
+					Write-Verbose " - This instance of SQL Server is clustered"
+				} else {
+					Write-Verbose " - This instance of SQL Server is not clustered"
+				}
+			}
+			$objSQLDataReader.Close();
+			$objSQLConnection.Close();
+			return $true;
+		} catch {
+			$errText = $error[0].ToString()
+			if ($errText.Contains("network-related"))
+			{
+				Write-Verbose "Connection Error. Check server name, port, firewall."
+			} elseif ($errText.Contains("Login failed")) {
+				Write-Verbose " - Not able to login. SQL Server login not created."
+			} elseif ($errText.Contains("Unsupported SQL version")) {
+				Write-Verbose " - SharePoint 2010 requires SQL 2005 SP3+CU3, SQL 2008 SP1+CU2, or SQL 2008 R2."
+			} else {
+				if (!([string]::IsNullOrEmpty($serverRole))) {
+					Write-Verbose " - $currentUser does not have `'$serverRole`' role!"
+				}
+				else {Write-Verbose " - $errText"}
+			}
+			return $false;
+		}
+    } End {	
+    	Write-Verbose -Message ($formats.End -f $MyInvocation.MyCommand);
+    }        
 }

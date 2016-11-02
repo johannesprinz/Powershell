@@ -44,7 +44,6 @@ function Get-TFSGroupMembership {
 			"ConnectionError" = "Error occurred trying to connect to tfs";
 		};
     	Write-Verbose -Message ($formats.Begin -f $MyInvocation.MyCommand);
-		Add-PSSnapin -Name Microsoft.TeamFoundation.PowerShell;
 		$server = $null;
 		$projects = @();
 		if($CollectionUrl) {

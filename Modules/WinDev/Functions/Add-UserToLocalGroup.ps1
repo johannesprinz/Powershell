@@ -1,6 +1,3 @@
-$de = [ADSI]"WinNT://$computer/$Group,group" 
-$de.psbase.Invoke("Add",([ADSI]"WinNT://$domain/$user").path)
-
 function Add-UserToLocalGroup {
 	<#
 	.SYNOPSIS
@@ -39,11 +36,11 @@ function Add-UserToLocalGroup {
         [parameter(
 			Mandatory=$true,
 			HelpMessage="Domain name")]
-		[string] $DomainName,,
+		[string] $DomainName,
         [parameter(
 			Mandatory=$true,
 			HelpMessage="User login name")]
-		[string] $UserName,
+		[string] $UserName
     )
     Begin{
 		$formats = @{
