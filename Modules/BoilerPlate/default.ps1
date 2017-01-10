@@ -1,6 +1,6 @@
 . .\BoilerPlate.ps1
 properties {
-	$ModuleName = "BoilerPlate"
+    $ModuleName = "BoilerPlate"
     $BaseDir = $psake.build_script_dir
     $OutDir = (Join-Path -Path $BaseDir -ChildPath "bin")
     $Version = '0.1.0' #Semantic Versioning 2.0.0 Major.Minor.Patch.Build
