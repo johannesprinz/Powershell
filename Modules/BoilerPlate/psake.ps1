@@ -7,7 +7,7 @@ function Test-Module($Name, $MinimumVersion){
 }
 $requiredModules = @(
 	@{Name="psake"; MinimumVersion=4.6.0;},
-	@{Name="Pester"; MinimumVersion=3.4.3;},
+	@{Name="Pester"; MinimumVersion=3.4.6;},
 	@{Name="PSScriptAnalyzer"; MinimumVersion=1.7.0;}
 )
 if($null -ne [System.Net.WebRequest]){
