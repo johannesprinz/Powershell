@@ -61,7 +61,7 @@ function Format-HelloWorld {
         #[switch] $Switch,
 		[Parameter(Position=1, Mandatory=$true, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
-        [string[]]$Name
+        [string]$Name
     )
     Begin{
 		$formats = @{
