@@ -1,58 +1,61 @@
-Include ".\BoilerPlate.ps1"
+Include ".\tasksBoilerPlate.ps1"
 
 properties {
-    $ModuleName = "BoilerPlate"
-    $BaseDir = $psake.build_script_dir
-    $OutDir = (Join-Path -Path $BaseDir -ChildPath "bin")
-    $Version = '0.1.0' #Semantic Versioning 2.0.0 Major.Minor.Patch.Build
-    $NugetExe = (Join-Path -Path $BaseDir -ChildPath "..\..\.nuget\nuget.exe")
+    $moduleName = "BoilerPlate"
+    $version = '0.1.0' #Semantic Versioning 2.0.0 Major.Minor.Patch.Build
+	$dir = @{
+		base =(Get-Item -Path $psake.build_script_dir).FullName;
+		bin = (Join-Path -Path $psake.build_script_dir -ChildPath "bin");
+	}
+	$tool = @{
+		nuget = (Join-Path -Path $dir.base -ChildPath "..\..\.nuget\nuget.exe");
+	}
+    $NugetExe = 
 	$message = @{
 		notImplemented = 'This task has not been implemented yet'
 	}
 }
 
-Task Build -depends Test, Package
-Task Package -depends Version-Module, Pack-Nuget, Unversion-Module
-Task Release -depends Build, Push-Nuget
+Task Default -Depends Get-Help
+
+Task Get-Help {
+	if(Test-Path -Path ..\README.md) {
+		Write-Verbose -Message "README can be found here .\README.md" -Verbose
+	}
+	Invoke-psake -docs -nologo
+	Get-ChildItem -Path $dir.base -Filter task*.ps1 | Foreach-Object {
+		Write-Verbose -Message $_.FullName -Verbose;
+		Invoke-psake -buildFile $_ -docs -nologo;
+	}
+}
+
+Task Setup -Description "Sets up your environment ready for development" {
+	Write-Warning -Message "Please refere to $(Join-Path -Path $dir.src -ChildPath README.md)"
+}
 
 Task Clean {
-	if(Test-Path -Path $OutDir){ Remove-Item -Path $OutDir -Recurse }
+	Invoke-psake -buildFile .\tasksTest.ps1 -nologo -taskList Clean
 }
 
-Task Test {
-	Invoke-ScriptAnalyzer -Path $BaseDir -Recurse
-	if(!(Test-Path -Path $OutDir)){ New-Item -Path $OutDir -ItemType Directory }
-	Push-Location -Path "$BaseDir"
-	exec { . "$BaseDir\Pester.cmd" }
-    Pop-Location
+Task Build -Depends Clean {
+    Invoke-ScriptAnalyzer -Path . -Recurse;
+	Import-Module -Name .\$moduleName.psm1 -Force -Verbose
 }
 
-Task Version-Module{
-    $changeset=(git log -1 --pretty=tformat:%h)
-	$build=(git rev-list --count HEAD)
-	(Get-Content "$BaseDir\$ModuleName.psm1") `
-      | ForEach-Object {$_ -replace "\`$version\`$", [string]::Format("{0}.{1}", $Version, $build) } `
-      | ForEach-Object {$_ -replace "\`$sha\`$", "$changeset" } `
-      | Set-Content "$BaseDir\$ModuleName.psm1"
+Task Test -Depends Build {
+	Invoke-psake -buildFile .\tasksTest.ps1 -nologo
 }
 
-Task Unversion-Module{
-    $changeset=(git log -1 --pretty=tformat:%h)
-	$build=(git rev-list --count HEAD)
-    (Get-Content "$BaseDir\$ModuleName.psm1") `
-      | ForEach-Object {$_ -replace [string]::Format("{0}.{1}", $Version, $build), "`$version`$" } `
-      | ForEach-Object {$_ -replace "$changeset", "`$sha`$" } `
-      | Set-Content "$BaseDir\$ModuleName.psm1"
+Task Package -Depends Test {
+	Invoke-psake -buildFile .\tasksPackage.ps1 -nologo
 }
 
-Task Pack-Nuget {
-	if(!(Test-Path -Path $OutDir)){ New-Item -Path $OutDir -ItemType Directory }
-	$build=(git rev-list --count HEAD)
-    exec { . $NugetExe pack "$BaseDir\$ModuleName.nuspec" -OutputDirectory "$OutDir" -NoPackageAnalysis -version ([string]::Format("{0}.{1}", $Version, $build)) }
-}
-
-Task Push-Nuget {
+Task Publish -Depends Package {
 	Write-Warning -Message $message.notImplemented;
-#    $pkg = Get-Item -path $OutDir\$ModuleName.$Version.nupkg
-#    exec { .$NugetExe push $pkg.FullName }
+}
+
+Task Deploy -Depends Publish {
+	Write-Warning -Message $message.notImplemented;
+#    $pkg = Get-Item -path "$($dir.bin)\$moduleName.$version.nupkg"
+#    exec { . $tool.nuget push $pkg.FullName }
 }

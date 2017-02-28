@@ -7,8 +7,8 @@ function Test-Module($Name, $MinimumVersion){
 }
 $requiredModules = @(
 	@{Name="psake"; MinimumVersion=4.6.0;},
-	@{Name="Pester"; MinimumVersion=3.4.6;},
-	@{Name="PSScriptAnalyzer"; MinimumVersion=1.7.0;}
+	@{Name="Pester"; MinimumVersion=4.0.2;},
+	@{Name="PSScriptAnalyzer"; MinimumVersion=1.10.0;}
 )
 if($null -ne [System.Net.WebRequest]){
 	[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials;
