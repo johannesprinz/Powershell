@@ -19,6 +19,7 @@ function Disable-Proxy {
         SupportsShouldProcess=$true,
 		ConfirmImpact="High"
     )]
+    Param()
     Begin{
 		$formats = @{
 			"Begin" = "Begin {0}...";
